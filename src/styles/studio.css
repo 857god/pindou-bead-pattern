@@ -1,0 +1,679 @@
+/* Studio Pixel 组件样式：从源页面 <style scoped>（.pw-generator 区块）翻译成普通 CSS。
+   保留源页面的留白、字号、圆角与暖色描边；所有数值用 px / % / vw / vh。 */
+
+/* ==================== 页面骨架 ==================== */
+
+.pw-app {
+  min-height: 100vh;
+  background: #fff8f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pw-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #ffffff;
+  border-bottom: 1px solid var(--pw-hairline);
+  box-shadow: 0 1px 2px rgba(31, 27, 18, 0.04);
+}
+
+.pw-header-inner {
+  height: 56px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pw-header-title {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--pw-ink);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pw-header-spacer {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.pw-back-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: var(--pw-radius-pill);
+  border: 1px solid var(--pw-hairline);
+  background: #ffffff;
+  color: var(--pw-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pw-back-btn:hover {
+  background: #fff8f0;
+}
+
+.pw-content {
+  flex: 1;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 12px 12px 24px;
+}
+
+.pw-steps {
+  display: block;
+}
+
+.pw-footer {
+  padding: 0 12px 20px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--pw-muted);
+}
+
+/* ==================== 卡片 / 标题 ==================== */
+
+.pw-card {
+  background: #ffffff;
+  border: 1px solid var(--pw-hairline);
+  border-radius: var(--pw-radius-card);
+  padding: 16px;
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+/* 两步组件都靠 display: contents 打平，让卡片直接参与网格布局 */
+.pw-steps > .step-structure,
+.pw-steps > .step-match {
+  display: contents;
+}
+
+.pw-section-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--pw-ink);
+  margin-bottom: 14px;
+}
+
+.step-header {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.step-title {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--pw-ink);
+  margin-bottom: 8px;
+}
+
+.step-desc {
+  display: block;
+  font-size: 13px;
+  color: var(--pw-muted);
+}
+
+/* ==================== 上传区 ==================== */
+
+.upload-area {
+  width: 100%;
+  min-height: 200px;
+  padding: 18px;
+  background: #ffffff;
+  border: 2px dashed var(--pw-dashed);
+  border-radius: var(--pw-radius-card);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.upload-area:hover,
+.upload-area.is-dragging {
+  border-color: var(--pw-on-primary);
+  background: #fffdf7;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.upload-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fff8f0;
+  border: 1px dashed var(--pw-dashed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.upload-text {
+  font-size: 14px;
+  color: var(--pw-muted);
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: var(--pw-muted);
+}
+
+/* ==================== 吸顶预览区 ==================== */
+
+.pw-preview-card {
+  background: #ffffff;
+  border: 1px solid var(--pw-hairline);
+  border-radius: var(--pw-radius-card);
+  padding: 10px;
+  margin-bottom: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 源页面刻意的吸顶设计：滚动时覆盖下方内容，不要加 pointer-events: none */
+.pw-preview-card.sticky-canvas {
+  position: sticky;
+  top: 8px;
+  z-index: 10;
+  background: rgba(255, 248, 240, 0.96);
+  box-shadow: var(--pw-shadow-card);
+  padding: 8px 10px;
+}
+
+.pw-preview-card .canvas-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-height: none;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.pw-preview-card .original-preview,
+.pw-preview-card .result-canvas {
+  border-radius: 18px;
+  border: 1px solid var(--pw-hairline);
+  background: #fff8f0;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* 主动撑满：52 格的图也要占满卡片宽度，1 格 1 显示像素放大后仍用最近邻 */
+.pw-preview-card .original-preview {
+  width: min(100%, var(--pw-max));
+  height: auto;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  background: #fff8f0;
+}
+
+.pw-preview-card .result-canvas {
+  width: min(100%, var(--pw-max));
+  height: auto;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #ffffff;
+}
+
+/* 点预览放大：与源页面 previewStickyImage 的「点一下放大」等价 */
+.pw-preview-card .canvas-wrapper.zoomed {
+  max-height: none;
+}
+
+.pw-preview-card .canvas-wrapper.zoomed .original-preview,
+.pw-preview-card .canvas-wrapper.zoomed .result-canvas,
+.pw-preview-card .canvas-wrapper.zoomed .pw-canvas .result-canvas {
+  width: min(100%, calc(var(--pw-max) * 1.8));
+  max-width: 100%;
+  height: auto;
+}
+
+.preview-tappable {
+  cursor: zoom-in;
+}
+
+.pw-preview-meta {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--pw-muted);
+}
+
+/* ==================== 像素大小 ==================== */
+
+.size-selector {
+  margin-bottom: 12px;
+}
+
+.pw-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pw-ink);
+  margin-bottom: 8px;
+}
+
+.size-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.size-btn {
+  width: 100%;
+  height: 52px;
+  line-height: 1;
+  background: #fff8f0;
+  border: 1px solid var(--pw-hairline);
+  border-radius: var(--pw-radius-control);
+  color: var(--pw-ink);
+  font-size: 16px;
+  font-weight: 600;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.size-btn:hover {
+  background: #fff3dd;
+}
+
+.size-btn:active {
+  transform: scale(0.97);
+}
+
+.size-btn.active {
+  background: var(--pw-primary);
+  border-color: var(--pw-on-primary);
+  color: var(--pw-on-primary);
+  font-weight: 700;
+}
+
+.custom-size-input {
+  height: 52px;
+}
+
+.custom-size-input input {
+  width: 100%;
+  height: 100%;
+  padding: 0 12px;
+  background: #fff8f0;
+  border: 1px solid var(--pw-hairline);
+  border-radius: var(--pw-radius-control);
+  color: var(--pw-ink);
+  font-size: 15px;
+  text-align: center;
+}
+
+.custom-size-input input:focus {
+  border-color: var(--pw-on-primary);
+  background: #ffffff;
+  outline: none;
+}
+
+.custom-size-input.active input {
+  background: var(--pw-primary);
+  border-color: var(--pw-on-primary);
+  color: var(--pw-on-primary);
+  font-weight: 700;
+}
+
+/* ==================== 滑块 ==================== */
+
+.control-row {
+  margin-bottom: 10px;
+}
+
+.control-row:last-child {
+  margin-bottom: 0;
+}
+
+.control-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pw-ink);
+  line-height: 1.45;
+  margin-bottom: 5px;
+}
+
+.label-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--pw-muted);
+  line-height: 1.4;
+}
+
+.label-hint-em {
+  font-weight: 600;
+  color: var(--pw-muted);
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.slider-container input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  min-height: 28px;
+}
+
+.slider-value {
+  flex-shrink: 0;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--pw-radius-pill);
+  border: 1px solid var(--pw-hairline);
+  background: #fff8f0;
+  color: var(--pw-on-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* ==================== 模式切换按钮（标准 / 自定义 等） ==================== */
+
+.control-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.control-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 6px;
+  margin: 0 3px;
+  background: #fff8f0;
+  border: 1px solid var(--pw-hairline);
+  border-radius: var(--pw-radius-control);
+  transition: background 0.15s;
+}
+
+.control-btn:first-child {
+  margin-left: 0;
+}
+
+.control-btn:last-child {
+  margin-right: 0;
+}
+
+.control-btn .btn-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pw-ink);
+}
+
+.control-btn:hover {
+  background: #fff3dd;
+}
+
+.control-btn.active {
+  background: var(--pw-primary);
+  border-color: var(--pw-on-primary);
+}
+
+.control-btn.active .btn-title {
+  color: var(--pw-on-primary);
+  font-weight: 700;
+}
+
+/* ==================== 高级调节面板 ==================== */
+
+.advanced-section {
+  background: transparent;
+  border: none;
+}
+
+.mode-hint-text {
+  display: block;
+  font-size: 12px;
+  color: var(--pw-muted);
+  line-height: 1.45;
+  margin: 10px 0 0;
+}
+
+.advanced-panel {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--pw-radius-control);
+  border: 1px solid var(--pw-hairline);
+  background: #ffffff;
+}
+
+.advanced-panel.is-locked {
+  background: #faf6ef;
+}
+
+.advanced-panel.is-locked .slider-container {
+  opacity: 0.55;
+}
+
+.advanced-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.advanced-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--pw-ink);
+}
+
+.advanced-sub {
+  flex: 1 1 100%;
+  font-size: 11px;
+  color: var(--pw-muted);
+  line-height: 1.4;
+}
+
+.advanced-row:last-child {
+  margin-bottom: 0;
+}
+
+/* ==================== 色卡选择 ==================== */
+
+.palette-selector {
+  margin-bottom: 12px;
+}
+
+.selector-row {
+  margin-bottom: 13px;
+}
+
+.selector-row:last-child {
+  margin-bottom: 0;
+}
+
+.selector-row .pw-label {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.picker-display {
+  width: 100%;
+  padding: 12px 14px;
+  background: #fff8f0;
+  border: 1px solid var(--pw-hairline);
+  border-radius: var(--pw-radius-control);
+  color: var(--pw-ink);
+  font-size: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--pw-on-primary) 50%),
+    linear-gradient(135deg, var(--pw-on-primary) 50%, transparent 50%);
+  background-position: calc(100% - 20px) calc(50% + 2px), calc(100% - 15px) calc(50% + 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 38px;
+  cursor: pointer;
+}
+
+.picker-display:disabled,
+.picker-display.disabled {
+  color: var(--pw-muted);
+  cursor: not-allowed;
+}
+
+/* ==================== 底部按钮 ==================== */
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.action-buttons button {
+  flex: 1;
+  padding: 13px;
+  border-radius: var(--pw-radius-pill);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.action-buttons .back-btn {
+  background: #ffffff;
+  color: var(--pw-ink);
+  border: 1px solid var(--pw-hairline);
+}
+
+.action-buttons .back-btn:hover {
+  background: #fff8f0;
+}
+
+.action-buttons .next-btn {
+  background: var(--pw-primary);
+  color: var(--pw-on-primary);
+}
+
+.action-buttons .next-btn:disabled {
+  opacity: 0.45;
+}
+
+/* ==================== 错误提示 ==================== */
+
+.error-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: var(--pw-radius-control);
+  border: 1px solid #e6b3a8;
+  background: #fff2ee;
+  color: #8a2f1c;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.error-banner .error-close {
+  flex-shrink: 0;
+  color: #8a2f1c;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+/* ==================== 纯 CSS 画布占位 ==================== */
+
+.canvas-placeholder {
+  width: min(100%, var(--pw-max));
+  aspect-ratio: 1 / 1;
+  max-height: var(--pw-max);
+  border-radius: 18px;
+  border: 1px dashed var(--pw-dashed);
+  background: #fff8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pw-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 12px;
+}
+
+/* ==================== 窄屏 / 桌面 ==================== */
+
+@media (max-width: 360px) {
+  .size-options {
+    gap: 8px;
+  }
+
+  .size-btn,
+  .custom-size-input {
+    height: 46px;
+  }
+
+  .size-btn {
+    font-size: 15px;
+  }
+}
+
+/* 宽屏：预览左吸顶、控件右列；窄屏仍是单列（.step-controls 只是普通块） */
+@media (min-width: 900px) {
+  .pw-content {
+    max-width: 1040px;
+    padding-top: 16px;
+  }
+
+  .pw-steps {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(360px, 1fr);
+    grid-template-areas: 'preview controls';
+    align-items: start;
+    gap: 16px;
+  }
+
+  .pw-steps .step-header,
+  .pw-steps .upload-area {
+    grid-column: 1 / -1;
+  }
+
+  .pw-steps .pw-preview-card {
+    grid-area: preview;
+    position: sticky;
+    top: 72px;
+    margin-bottom: 0;
+  }
+
+  .pw-steps .step-controls {
+    grid-area: controls;
+    min-width: 0;
+  }
+}

@@ -1,0 +1,160 @@
+/* 基础样式：只做 reset + 表单控件的一致外观，所有数值一律用 px / % / vw / vh。 */
+
+:root {
+  --pw-bg: #fff8f0;
+  --pw-card: #ffffff;
+  --pw-primary: #ffd54f;
+  --pw-on-primary: #735c00;
+  --pw-ink: #1f1b12;
+  --pw-muted: #5e5e5e;
+  --pw-hairline: #eae2d3;
+  --pw-track: #eae2d3;
+  --pw-dashed: #d0c6ae;
+  --pw-shadow-card: 0 4px 12px rgba(31, 27, 18, 0.06);
+
+  /* 预览卡片里画布/图片能用的最大边长（源页面按窗口高度算的 --preview-max-height 等价物） */
+  --pw-max: clamp(160px, 32vh, 320px);
+
+  --pw-radius-card: 24px;
+  --pw-radius-control: 16px;
+  --pw-radius-pill: 999px;
+}
+
+@media (orientation: landscape) {
+  :root {
+    --pw-max: clamp(140px, 50vh, 380px);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--pw-bg);
+  color: var(--pw-ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+img {
+  display: block;
+}
+
+/* 数字输入框去掉浏览器自带的上下箭头，避免和卡片留白打架 */
+input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* 源页面的 slider：activeColor #ffd54f / backgroundColor #eae2d3 */
+input[type='range'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    var(--pw-primary) 0,
+    var(--pw-primary) var(--pw-fill, 0%),
+    var(--pw-track) var(--pw-fill, 0%),
+    var(--pw-track) 100%
+  );
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 26px;
+  height: 26px;
+  margin-top: -10px;
+  border-radius: 50%;
+  background: var(--pw-primary);
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(31, 27, 18, 0.24);
+}
+
+input[type='range']::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pw-track);
+}
+
+input[type='range']::-moz-range-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pw-primary);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--pw-primary);
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(31, 27, 18, 0.24);
+}
+
+input[type='range']:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+:focus-visible {
+  outline: 2px solid var(--pw-on-primary);
+  outline-offset: 2px;
+}

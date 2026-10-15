@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-debug/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# 本地验证时产生的临时文件（DOM dump、无头浏览器脚手架）
+.*-dom.html
+.verify/
+
+# 品牌色卡数据不入库（见 README「色卡数据」）：
+# 开源仓库里只有合成色卡 + 加载器，真实品牌色卡走外部数据目录。
+public/palettes/*.json
+!public/palettes/README.md
