@@ -1,4 +1,4 @@
-# bead-pixel-studio
+# pindou-simple
 
 把一张照片变成拼豆（Perler / Hama bead）图纸的**两步**网页工具：
 
