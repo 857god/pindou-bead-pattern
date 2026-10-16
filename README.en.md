@@ -1,4 +1,4 @@
-# pindou-simple
+# pindou-bead-pattern
 
 [中文](README.md) | English
 
@@ -18,8 +18,8 @@ Those are the only two steps: no editor, no export, no AI generation, no paywall
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/pindou-simple.git
-cd pindou-simple
+git clone https://github.com/YOUR_GITHUB_USERNAME/pindou-bead-pattern.git
+cd pindou-bead-pattern
 
 npm install
 npm run dev        # http://127.0.0.1:5310

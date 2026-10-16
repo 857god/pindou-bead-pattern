@@ -1,5 +1,5 @@
 {
-  "name": "pindou-simple",
+  "name": "pindou-bead-pattern",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,11 +8,11 @@
   "author": "Chenxi Zhang",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_GITHUB_USERNAME/pindou-simple.git"
+    "url": "git+https://github.com/YOUR_GITHUB_USERNAME/pindou-bead-pattern.git"
   },
-  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/pindou-simple#readme",
+  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/pindou-bead-pattern#readme",
   "bugs": {
-    "url": "https://github.com/YOUR_GITHUB_USERNAME/pindou-simple/issues"
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/pindou-bead-pattern/issues"
   },
   "keywords": [
     "拼豆",
