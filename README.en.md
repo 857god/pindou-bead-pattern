@@ -2,6 +2,9 @@
 
 [中文](README.md) | English
 
+[![CI](https://github.com/857god/pindou-bead-pattern/actions/workflows/ci.yml/badge.svg)](https://github.com/857god/pindou-bead-pattern/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A **two-step** web tool that turns a photo into a perler / fuse-bead（拼豆, Perler / Hama bead）pattern:
 
 1. **Pixelation（像素化处理）** (downsampling) — choose an image, choose a pixel size, choose a palette, and preview the pixelated result live
@@ -18,7 +21,7 @@ Those are the only two steps: no editor, no export, no AI generation, no paywall
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/pindou-bead-pattern.git
+git clone https://github.com/857god/pindou-bead-pattern.git
 cd pindou-bead-pattern
 
 npm install

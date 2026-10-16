@@ -8,11 +8,11 @@
   "author": "Chenxi Zhang",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_GITHUB_USERNAME/pindou-bead-pattern.git"
+    "url": "git+https://github.com/857god/pindou-bead-pattern.git"
   },
-  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/pindou-bead-pattern#readme",
+  "homepage": "https://github.com/857god/pindou-bead-pattern#readme",
   "bugs": {
-    "url": "https://github.com/YOUR_GITHUB_USERNAME/pindou-bead-pattern/issues"
+    "url": "https://github.com/857god/pindou-bead-pattern/issues"
   },
   "keywords": [
     "拼豆",

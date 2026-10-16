@@ -2,6 +2,9 @@
 
 [English](README.en.md) | 中文
 
+[![CI](https://github.com/857god/pindou-bead-pattern/actions/workflows/ci.yml/badge.svg)](https://github.com/857god/pindou-bead-pattern/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 把一张照片变成拼豆（Perler / Hama bead）图纸的**两步**网页工具：
 
 1. **像素化处理**（降采样）——选图片、选像素大小、选色卡，实时预览像素化效果
@@ -18,7 +21,7 @@
 ## 快速开始
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/pindou-bead-pattern.git
+git clone https://github.com/857god/pindou-bead-pattern.git
 cd pindou-bead-pattern
 
 npm install
