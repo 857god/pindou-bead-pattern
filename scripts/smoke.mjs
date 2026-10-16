@@ -46,7 +46,7 @@ console.log(`  尺寸档位    ${structure.sizeTier}`);
 console.log(`  耗时        ${structure.elapsed} ms`);
 
 // ---- 第二步：色卡匹配 ----
-const matched = await runMatchStage({ palette, dithering: 'none' });
+const matched = await runMatchStage({ palette });
 console.log(`\n[第二步] 色卡匹配`);
 console.log(`  用色        ${matched.ranked.length} / ${matched.paletteSize}`);
 console.log(`  平均 ΔE00   ${matched.stats.mean.toFixed(2)}（中位 ${matched.stats.median.toFixed(2)}，最大 ${matched.stats.max.toFixed(2)}）`);

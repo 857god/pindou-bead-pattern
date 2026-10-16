@@ -123,21 +123,6 @@ test('匹配层去杂色档位会真的改变结果', async () => {
   assert.ok(on.isolated < off.isolated, `去杂色应减少孤立豆（${off.isolated} → ${on.isolated}）`);
 });
 
-test('抖动档位会真的改变匹配结果', async () => {
-  await runStructureStage({ source, pixelSize: 32, palette });
-  const none = await runMatchStage({ palette, dithering: 'none' });
-
-  await runStructureStage({ source, pixelSize: 32, palette });
-  const dithered = await runMatchStage({ palette, dithering: 'floyd-steinberg' });
-
-  let differences = 0;
-  for (let i = 0; i < none.codes.length; i += 1) {
-    if (none.codes[i] !== dithered.codes[i]) differences += 1;
-  }
-  assert.ok(differences > 0, '开抖动应该改变色号分布');
-  assert.ok(dithered.ranked.length >= none.ranked.length, '抖动通常会用更多颜色');
-});
-
 test('「同色系」策略真的改变结果（不是假控件）', async () => {
   await runStructureStage({ source, pixelSize: 32, palette });
   const nearest = await runMatchStage({

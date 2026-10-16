@@ -54,12 +54,6 @@ export const FAMILY_PRIORITIES = [
   { value: 'high', label: '强' },
 ];
 
-export const DITHERING_OPTIONS = [
-  { value: 'none', label: '无' },
-  { value: 'floyd-steinberg', label: 'Floyd–Steinberg' },
-  { value: 'atkinson', label: 'Atkinson' },
-];
-
 /** 结构层自定义滑块（顺序即界面顺序） */
 export const STRUCTURE_ADJUSTMENTS = [
   {
@@ -251,7 +245,6 @@ export const store = reactive({
   hasCustomMatchConfig: false,
   paletteStrategy: 'nearest',
   familyPriority: 'medium',
-  dithering: 'none',
 
   /* 色卡 */
   palettesLoading: false,
@@ -690,12 +683,6 @@ export function setFamilyPriority(priority) {
   scheduleRecompute(ADJUST_DEBOUNCE_MS);
 }
 
-export function setDithering(mode) {
-  if (store.dithering === mode) return;
-  store.dithering = mode;
-  scheduleRecompute(ADJUST_DEBOUNCE_MS);
-}
-
 /** 第一步滑块：input 只改数字，change 才防抖重算 */
 export function onStructureAdjustInput(key, value) {
   if (!(key in store.customAdjustments)) return;
@@ -805,7 +792,6 @@ function matchInputs() {
   const inputs = {
     palette: normalizePalette(),
     matchMode: store.matchMode,
-    dithering: store.dithering,
     matchParams: {
       paletteStrategy: store.paletteStrategy,
       familyPriority: store.familyPriority,
@@ -1072,6 +1058,16 @@ function writeTestDrive(status, text) {
  * 每次操作后都断言重算确实发生了（而不是假控件）。仅 `?testdrive=1` 时运行。
  */
 async function runTestDrive() {
+  // 必须在这里就置位：页面上的 <pre id="autotest"> 是按 store.autotestMode 渲染的，
+  // 如果等到写报告时才置位，Vue 的 DOM 更新是异步的，那时元素还不存在，
+  // 报告会被 applyAutotestDom 的「找不到节点就返回」静默丢掉（曾经就是这样）。
+  // 顺带让 trace() 开始记录，出错时能把最后 30 条轨迹一起写出来。
+  store.autotestMode = true;
+  await new Promise((resolve) => {
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => resolve());
+    else setTimeout(resolve, 0);
+  });
+
   const lines = [];
   const started = Date.now();
 
@@ -1144,12 +1140,6 @@ async function runTestDrive() {
     setSkinToneProtection(true);
     await waitUntil(() => store.matchRunCount > runsBeforeSkin, 20000, '肤色保护重算');
     record('switch_skinTone', `runs=${store.matchRunCount} on=${store.enableSkinToneProtection}`);
-
-    // 第二步：抖动下拉
-    const runsBeforeDither = store.matchRunCount;
-    setDithering('floyd-steinberg');
-    await waitUntil(() => store.matchRunCount > runsBeforeDither, 20000, '抖动重算');
-    record('select_dithering', `runs=${store.matchRunCount} mode=${store.dithering}`);
 
     // 第二步改第一步参数：应重跑结构层 + 匹配层
     const runsBeforeCross = store.matchRunCount;

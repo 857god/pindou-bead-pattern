@@ -17,7 +17,7 @@
  *
  *   runMatchStage:
  *     matchColors（灰度检测 → preparePaletteForMatching → preparePixelsForPaletteMatching
- *       → mapPixelsToColorPalette → findClosestColor → applyDithering → applyBlockUnity
+ *       → mapPixelsToColorPalette → findClosestColor → applyBlockUnity
  *       → applySmoothMode → cleanupPaletteNoise → finalResultCache）
  *     → calculateContentArea
  *
@@ -203,14 +203,10 @@ export async function runStructureStage({
     ctx.startPerformanceTrace('generate');
     ctx.applyStructureConfigFromAdjustments();
 
-    if (ctx.shouldSkipFeatureAnalysis()) {
-      // 默认路径：enableSkinToneProtection=false，不做图片/色卡特征分析
-      ctx.imageFeatures = null;
-      ctx.paletteFeatures = null;
-    } else {
-      ctx.imageFeatures = await ctx.analyzeImage();
-      ctx.paletteFeatures = ctx.analyzePalette();
-    }
+    // 源文件里的图片/色卡特征分析（@/utils/image-analyzer.js）未随主链搬运，相关薄封装已删除，
+    // 这两个字段恒为 null（保留赋值以便与源实现对照）。
+    ctx.imageFeatures = null;
+    ctx.paletteFeatures = null;
 
     const token = ++ctx.activeGenerateToken;
     await ctx.processImage(token);
@@ -253,14 +249,12 @@ export async function runStructureStage({
  * @param {'standard'|'custom'} [input.matchMode] `standard` = 智能推荐基线，`custom` = 用下面的档位
  * @param {object} [input.matchParams] `custom` 时的档位：`paletteMergeLevel` / `smoothNoiseLevel` /
  *   `blockUnityLevel` / `saturationLevel` / `contrastLevel` / `enableSkinToneProtection`
- * @param {'none'|'floyd-steinberg'|'atkinson'} [input.dithering] 抖动，默认 none
  * @param {boolean} [input.quiet] 默认 true
  */
 export async function runMatchStage({
   palette,
   matchMode = 'standard',
   matchParams = {},
-  dithering = 'none',
   quiet = true,
 } = {}) {
   assertPalette(palette);
@@ -280,8 +274,7 @@ export async function runMatchStage({
     // 色卡匹配策略（最近色 / 同色系）在源页面里就存在 `autoConfig` 上，
     // 算法也只读 `ctx.autoConfig.paletteStrategy`——挂到 ctx 顶层不会生效（会变成假控件）。
     const { paletteStrategy, familyPriority, ...levelParams } = matchParams;
-    ctx.autoConfig = Object.assign({}, ctx.autoConfig, { dithering });
-    if (paletteStrategy) ctx.autoConfig.paletteStrategy = paletteStrategy;
+      if (paletteStrategy) ctx.autoConfig.paletteStrategy = paletteStrategy;
     if (familyPriority) ctx.autoConfig.familyPriority = familyPriority;
 
     for (const [key, value] of Object.entries(levelParams)) {

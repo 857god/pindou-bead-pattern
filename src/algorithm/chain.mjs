@@ -18,10 +18,12 @@
  * - `uni.*`：`processImage` 的算法路径依赖 canvas（把源图缩放画进临时画布 → 读回 ImageData）。
  *   这里用纯 JS 离屏画布等价实现 clearRect / drawImage(双线性缩放) / fillRect / draw，
  *   并用 `canvasGetImageData` 返回 `{width, height, data}`。canvas 上下文用 Proxy 代理到 `ctx` 本身，
- *   因此源文件里本来就存在的局部变量名 `ctx`（line 2273 / 4258）不会挡住实例状态，
+ *   因此源文件里本来就存在的局部变量名 `ctx`（源文件 line 2273）不会挡住实例状态，
  *   抽取出来的函数体得以完全保留原样。详见 PORTING-NOTES.md。
- * - `imageAnalyzer`（源文件 `@/utils/image-analyzer.js`）：未随主链搬运。默认 new 管线
- *   `enableSkinToneProtection === false` → `shouldSkipFeatureAnalysis()` 为 true，不会调用它。
+ * - 绘制步骤（源文件 `doDrawResult` 4246-4301）：交付版由 Vue 侧 `src/render.mjs` 直接画到 DOM canvas，
+ *   主链里的 drawResult 与本层 doDrawResult 桩已删除。
+ * - 源 `@/utils/image-analyzer.js`（图像分类/特征分析）与经典降采样管线：未随主链搬运，相关的
+ *   几个薄封装（analyzeImage / analyzePalette / shouldSkipFeatureAnalysis / pixelizeImageData）已一并删除。
  * - `ctx.precisionMatcher`：包装本仓库 `src/palette-matcher.js` 的 `PaletteMatcher`（剪枝 bug 已修），
  *   方法名/返回字段按调用方期望映射：`findNearestPrecise` 返回色卡条目对象，`deltaE` = `deltaE2000`。
  * - 各种缓存（`basePixelCache` 等）用与源文件一致的 Map / 普通对象，不改变读写顺序。
@@ -235,18 +237,10 @@ const uni = {
 };
 
 /**
- * 源文件 `@/utils/image-analyzer.js` 的 stub：**未随主链搬运**。
- * 默认 new 管线 `enableSkinToneProtection === false` → `shouldSkipFeatureAnalysis()` 为 true，
- * 不会调用这两个方法；显式开启肤色保护时返回 null（见 PORTING-NOTES.md）。
+ * 源文件 `@/utils/image-analyzer.js`（图像类型分类 / 色卡特征分析）**未随主链搬运**。
+ * 依赖它的 analyzeImage / analyzePalette / shouldSkipFeatureAnalysis 三个薄封装，
+ * 以及只有经典降采样管线才会走到的 pixelizeImageData，已一并删除。
  */
-const imageAnalyzer = {
-  async analyzeImageFeatures() {
-    return null;
-  },
-  analyzePaletteFeatures() {
-    return null;
-  },
-};
 
 /**
  * `ctx.precisionMatcher`：包装本仓库修好剪枝 bug 的 `PaletteMatcher`。
@@ -448,37 +442,6 @@ export function createInitialState(overrides = {}) {
   };
   // 以下成员不是 data() 字段，而是本移植层补的 stub（见文件头说明）
   state.precisionMatcher = createPrecisionMatcher();
-  /**
-   * `doDrawResult` 的 stub（源文件 4246-4301）——**唯一一个无法逐字搬运的主链函数**。
-   * 原因：它函数体里 `const ctx = uni.createCanvasContext(canvasId, this)`（4258）与实例 `ctx` 同名、
-   * 且在同一个函数作用域内，逐字搬运后前面的 `ctx.canvasWidth` 会落在 TDZ 上。
-   * 它是纯 UI 绘制（把匹配结果画到 canvas），不影响主链结果，这里用等价绘制实现（画到 stub 画布，无 DOM 副作用）。
-   */
-  state.doDrawResult = function doDrawResult(canvasId) {
-    const id = canvasId || (ctx.step === 1 ? 'previewCanvas' : 'matchedCanvas');
-    console.log('执行实际绘制...（stub）');
-    const grid = ctx.resultPixelData;
-    if (!grid || !Array.isArray(grid) || grid.length === 0) {
-      console.error('doDrawResult: resultPixelData 无效');
-      return;
-    }
-    const cellWidth = ctx.canvasWidth / ctx.contentPixelWidth;
-    const cellHeight = ctx.canvasHeight / ctx.contentPixelHeight;
-    const canvasCtx = createCanvasContextStub(id, ctx);
-    canvasCtx.clearRect(0, 0, ctx.canvasWidth, ctx.canvasHeight);
-    for (let y = 0; y < grid.length; y += 1) {
-      if (!grid[y]) continue;
-      for (let x = 0; x < grid[y].length; x += 1) {
-        const color = grid[y][x];
-        if (color === null || color === undefined) continue;
-        canvasCtx.fillStyle = color;
-        canvasCtx.fillRect(Math.floor(x * cellWidth), Math.floor(y * cellHeight), Math.ceil(cellWidth + 0.5), Math.ceil(cellHeight + 0.5));
-      }
-    }
-    canvasCtx.draw(false, () => {
-      console.log('canvas 绘制完成');
-    });
-  };
   return Object.assign(state, overrides);
 }
 
@@ -988,35 +951,6 @@ export const chainMethods = {
     ctx.performanceTrace.tier = ctx.getSizeTier();
   },
 
-  // src: smart-pixel-generator.vue:1350-1377
-  finishPerformanceTrace() {
-    if (!ctx.performanceTrace) return;
-    const slowStages = Object.keys(ctx.performanceTrace.stages)
-      .map(name => ({
-        name,
-        total: ctx.performanceTrace.stages[name].total,
-        count: ctx.performanceTrace.stages[name].count
-      }))
-      .filter(stage => stage.total >= 300)
-      .sort((a, b) => b.total - a.total);
-    const report = {
-      ...ctx.performanceTrace,
-      total: Date.now() - ctx.performanceTrace.startedAt,
-      slowStages,
-      caches: {
-        colorSimplify: ctx.colorSimplifyCache.size,
-        structure: ctx.structureCache.size,
-        final: ctx.finalResultCache.size,
-        baseMatch: ctx.baseMatchResultCache.size,
-        colorMaps: ctx.matchColorMapCache.size,
-        currentColorMap: ctx.colorCache ? ctx.colorCache.size : 0
-      }
-    };
-
-    ctx.lastPerformanceReport = report;
-    console.log('像素生成性能报告:', report);
-    ctx.performanceTrace = null;
-  },
 
   // src: smart-pixel-generator.vue:1687-1707
   ensureOriginalImageInfo() {
@@ -1082,185 +1016,10 @@ export const chainMethods = {
     return read(0);
   },
 
-  // src: smart-pixel-generator.vue:2013-2133
-  async generatePixelArt() {
-    const totalStart = Date.now();
-    if (!ctx.hasSelectedPixelSize) {
-      uni.showToast({
-        title: '请先选择板子大小',
-        icon: 'none'
-      });
-      return;
-    }
 
-    // 检查是否选择了色卡
-    if (!ctx.selectedPalette) {
-      uni.showToast({
-        title: '请先选择色卡',
-        icon: 'none'
-      });
-      return;
-    }
-    
-    console.log('\n=== 开始智能生成像素图 ===');
-    console.log('图片:', ctx.originalImage);
-    console.log('像素大小:', ctx.pixelSize);
-    console.log('色卡颜色数:', ctx.paletteColors.length);
-    
-    ctx.loading = true;
-    ctx.startPerformanceTrace('generate');
-    ctx.applyStructureConfigFromAdjustments();
-    const skipFeatureAnalysis = ctx.shouldSkipFeatureAnalysis();
-    ctx.loadingText = skipFeatureAnalysis ? '正在生成像素图...' : '正在分析图片特征...';
-    ctx.progress = 10;
-    const token = ++ctx.activeGenerateToken;
-    
-    try {
-      let stageStart = Date.now();
 
-      if (skipFeatureAnalysis) {
-        console.log('快速生成：跳过图片/色卡特征分析');
-        ctx.imageFeatures = null;
-        ctx.paletteFeatures = null;
-        ctx.progress = 45;
-      } else {
-        // 1. 分析图片特征（用于肤色检测等，可选）
-        console.log('\n步骤1: 分析图片特征');
-        ctx.imageFeatures = await ctx.analyzeImage();
-        if (token !== ctx.activeGenerateToken) return;
-        const imageAnalyzeTime = Date.now() - stageStart;
-        ctx.recordPerformanceStage('图片分析', imageAnalyzeTime);
-        console.log('耗时-图片分析:', imageAnalyzeTime, 'ms');
-        console.log('图片特征分析完成:', ctx.imageFeatures);
-        ctx.progress = 30;
 
-        // 2. 分析色卡特征（仅记录，不自动改配置）
-        console.log('\n分析色卡特征');
-        ctx.loadingText = '正在分析色卡特征...';
-        stageStart = Date.now();
-        ctx.paletteFeatures = ctx.analyzePalette();
-        const paletteAnalyzeTime = Date.now() - stageStart;
-        ctx.recordPerformanceStage('色卡分析', paletteAnalyzeTime);
-        console.log('耗时-色卡分析:', paletteAnalyzeTime, 'ms');
-        console.log('色卡特征分析完成:', ctx.paletteFeatures);
-        ctx.progress = 50;
-      }
-      
-      // 3. 生成像素图（结构层固定使用当前配置）
-      console.log('\n生成像素图');
-      ctx.loadingText = '正在生成像素图...';
-      stageStart = Date.now();
-      if (!ctx.hasPreviewGenerated || !ctx.pixelData) {
-        await ctx.processImage(token);
-        if (token !== ctx.activeGenerateToken) return;
-        ctx.hasPreviewGenerated = true;
-      } else {
-        ctx.addPerformanceNote('复用已有像素预览');
-      }
-      const pixelizeTime = Date.now() - stageStart;
-      ctx.recordPerformanceStage('像素化总段', pixelizeTime);
-      console.log('耗时-像素化:', pixelizeTime, 'ms');
-      console.log('像素图生成完成，数据:', ctx.pixelData ? `${ctx.pixelData.length}x${ctx.pixelData[0]?.length}` : 'null');
-      ctx.progress = 80;
-      
-      // 4. 匹配色卡颜色
-      console.log('\n匹配色卡颜色');
-      ctx.loadingText = '正在匹配色卡颜色...';
-      stageStart = Date.now();
-      const matched = await ctx.matchColors(token);
-      if (!matched || token !== ctx.activeGenerateToken) return;
-      const matchTime = Date.now() - stageStart;
-      ctx.recordPerformanceStage('色卡匹配总段', matchTime);
-      console.log('耗时-色卡匹配:', matchTime, 'ms');
-      console.log('颜色匹配完成，结果:', ctx.resultPixelData ? `${ctx.resultPixelData.length}x${ctx.resultPixelData[0]?.length}` : 'null');
-      ctx.progress = 100;
-      
-      // 5. 计算实际内容区域
-      console.log('\n步骤5: 计算内容区域');
-      ctx.calculateContentArea();
-      
-      // 6. 切换到步骤2
-      console.log('\n步骤6: 切换到结果页');
-      ctx.step = 2;
 
-      console.log('耗时-总生成:', Date.now() - totalStart, 'ms');
-      ctx.finishPerformanceTrace();
-      console.log('=== 生成流程完成 ===\n');
-      
-    } catch (e) {
-      console.error('生成失败，详细错误:', e);
-      console.error('错误堆栈:', e.stack);
-      if (token === ctx.activeGenerateToken) {
-        ctx.loading = false;
-        uni.showToast({
-          title: '生成失败: ' + (e.message || '未知错误'),
-          icon: 'none',
-          duration: 3000
-        });
-      }
-    } finally {
-      if (token === ctx.activeGenerateToken) {
-        ctx.loading = false;
-      }
-    }
-  },
-
-  // src: smart-pixel-generator.vue:2136-2141
-  async analyzeImage() {
-    // imageAnalyzer imported at top of script
-    const features = await imageAnalyzer.analyzeImageFeatures(ctx.originalImage, 100);
-    console.log('图片特征:', features);
-    return features;
-  },
-
-  // src: smart-pixel-generator.vue:2144-2149
-  analyzePalette() {
-    // imageAnalyzer imported at top of script
-    const features = imageAnalyzer.analyzePaletteFeatures(ctx.paletteColors);
-    console.log('色卡特征:', features);
-    return features;
-  },
-
-  // src: smart-pixel-generator.vue:2197-2228
-  getPresetDescription(presetType) {
-    let presetName = '';
-    
-    switch (presetType) {
-      case 'portrait-high':
-        presetName = ' 特写人像模式';
-        break;
-      case 'portrait-medium':
-        presetName = '� 远景人像模式';
-        break;
-      case 'illustration-character':
-        presetName = ' 插画人物模式';
-        break;
-      case 'icon':
-        presetName = ' 图标模式';
-        break;
-      case 'illustration':
-        presetName = ' 插画模式';
-        break;
-      case 'photo':
-        presetName = ' 照片模式';
-        break;
-      default:
-        presetName = '⚖️ 平衡模式';
-        break;
-    }
-    
-    const satInfo = ctx.saturationLevel !== 1.0 ? ` | 饱和度${Math.round(ctx.saturationLevel * 100)}%` : '';
-    const contrastInfo = ctx.contrastLevel !== 1.0 ? ` | 对比度${Math.round(ctx.contrastLevel * 100)}%` : '';
-    
-    return `${presetName}${satInfo}${contrastInfo}`;
-  },
-
-  // src: smart-pixel-generator.vue:2231-2235
-  updateDescription() {
-    // 使用缓存的预设类型，避免重复判断
-    // 因为用户手动调整参数后，预设类型不应该改变
-    ctx.analysisResult = ctx.getPresetDescription(ctx.currentPresetType);
-  },
 
   // src: smart-pixel-generator.vue:2238-2366
   async processImage(activeToken = null) {
@@ -1349,15 +1108,10 @@ export const chainMethods = {
             const imageData = res.data;
             let basePixels;
             const downsampleStart = Date.now();
-            if (ctx.shouldUseFastSamplingPipeline()) {
-              const rgbPixels = ctx.simpleDownsampleRgb(imageData, srcWidth, srcHeight, targetDims.width, targetDims.height);
+            const rgbPixels = ctx.simpleDownsampleRgb(imageData, srcWidth, srcHeight, targetDims.width, targetDims.height);
 
-              basePixels = ctx.rgbGridToHexGrid(rgbPixels);
-              console.log('像素化完成（新管线）:', basePixels ? `${basePixels.length}x${basePixels[0].length}` : 'null');
-            } else {
-              basePixels = ctx.pixelizeImageData(imageData, processWidth, targetDims.width, processHeight, targetDims.height);
-              console.log('像素化完成（经典管线）:', basePixels ? `${basePixels.length}x${basePixels[0].length}` : 'null');
-            }
+            basePixels = ctx.rgbGridToHexGrid(rgbPixels);
+            console.log('像素化完成:', basePixels ? `${basePixels.length}x${basePixels[0].length}` : 'null');
             ctx.recordPerformanceStage('降采样计算', Date.now() - downsampleStart, {
               output: `${targetDims.width}x${targetDims.height}`,
               input: `${srcWidth}x${srcHeight}`
@@ -1393,15 +1147,7 @@ export const chainMethods = {
     });
   },
 
-  // src: smart-pixel-generator.vue:2375-2377
-  shouldSkipFeatureAnalysis() {
-    return !ctx.enableSkinToneProtection;
-  },
 
-  // src: smart-pixel-generator.vue:2379-2381
-  shouldUseFastSamplingPipeline() {
-    return true;
-  },
 
   // src: smart-pixel-generator.vue:2383-2402
   rgbGridToHexGrid(rgbPixels) {
@@ -1652,143 +1398,6 @@ export const chainMethods = {
     return result;
   },
 
-  // src: smart-pixel-generator.vue:2626-2761
-  pixelizeImageData(imageData, canvasWidth, outputWidth, canvasHeight = canvasWidth, outputHeight = outputWidth) {
-    console.log('开始像素化，输入:', canvasWidth + 'x' + canvasHeight, '输出:', outputWidth + 'x' + outputHeight);
-    console.log('像素化风格:', ctx.autoConfig.pixelizeMode);
-    console.log('边缘处理模式:', ctx.autoConfig.pixelMode);
-    
-    const pixelData = [];
-    const factorX = Math.max(1, Math.floor(canvasWidth / outputWidth));
-    const factorY = Math.max(1, Math.floor(canvasHeight / outputHeight));
-    
-    // 根据 pixelMode 调整深色阈值参数
-    let darkThreshold = 60;
-    let darkRatioThreshold = 0.20;
-    
-    if (ctx.autoConfig.pixelMode === 'preserve-edge') {
-      darkThreshold = 70;
-      darkRatioThreshold = Math.max(outputWidth, outputHeight) >= 80 ? 0.18 : 0.15;
-    } else if (ctx.autoConfig.pixelMode === 'smooth') {
-      darkThreshold = 60;
-      darkRatioThreshold = Math.max(outputWidth, outputHeight) >= 80 ? 0.30 : 0.28;
-    } else {
-      darkThreshold = 60;
-      darkRatioThreshold = Math.max(outputWidth, outputHeight) >= 80 ? 0.22 : 0.20;
-    }
-    
-    // 确定实际使用的像素化算法
-    let actualPixelizeMode = ctx.autoConfig.pixelizeMode;
-    if (actualPixelizeMode === 'smart') {
-      // 智能模式：根据图片特征自动选择
-      const imgF = ctx.imageFeatures || {};
-      if (imgF.type === 'illustration') {
-        actualPixelizeMode = 'sharp';  // 插画用桶聚合
-      } else {
-        actualPixelizeMode = 'smooth'; // 照片用平均
-      }
-      console.log('智能选择像素化算法:', actualPixelizeMode);
-    }
-    
-    for (let y = 0; y < outputHeight; y++) {
-      const row = new Array(outputWidth).fill(null);
-      const syStart = y * factorY;
-      const syEnd = Math.min(syStart + factorY, canvasHeight);
-      
-      for (let x = 0; x < outputWidth; x++) {
-        const sxStart = x * factorX;
-        const sxEnd = Math.min(sxStart + factorX, canvasWidth);
-        
-        let darkCount = 0;
-        let visibleCount = 0;
-        let totalR = 0, totalG = 0, totalB = 0;
-        const buckets = Object.create(null);
-        
-        for (let sy = syStart; sy < syEnd; sy++) {
-          for (let sx = sxStart; sx < sxEnd; sx++) {
-            const idx = (sy * canvasWidth + sx) * 4;
-            if (idx + 3 >= imageData.length) continue;
-            
-            const r = imageData[idx];
-            const g = imageData[idx + 1];
-            const b = imageData[idx + 2];
-            const a = imageData[idx + 3];
-            
-            if (a < 64) continue;
-            visibleCount++;
-            
-            const maxChannel = Math.max(r, g, b);
-            if (maxChannel < darkThreshold) darkCount++;
-            
-            // 简单平均：累加所有像素
-            totalR += r;
-            totalG += g;
-            totalB += b;
-            
-            // 桶聚合：按颜色分组
-            const key = (r << 16) | (g << 8) | b;
-            let bucket = buckets[key];
-            if (!bucket) {
-              bucket = { count: 0, r: 0, g: 0, b: 0 };
-              buckets[key] = bucket;
-            }
-            bucket.count++;
-            bucket.r += r;
-            bucket.g += g;
-            bucket.b += b;
-          }
-        }
-        
-        if (!visibleCount) {
-          row[x] = null;
-          continue;
-        }
-        
-        // 深色像素检测
-        if (darkCount / visibleCount >= darkRatioThreshold) {
-          row[x] = '#000000';
-          continue;
-        }
-        
-        let rAvg, gAvg, bAvg;
-        
-        if (actualPixelizeMode === 'smooth') {
-          // 照片模式：简单平均（过渡平滑）
-          rAvg = Math.max(0, Math.min(255, Math.round(totalR / visibleCount)));
-          gAvg = Math.max(0, Math.min(255, Math.round(totalG / visibleCount)));
-          bAvg = Math.max(0, Math.min(255, Math.round(totalB / visibleCount)));
-        } else {
-          // 插画模式：桶聚合（保持色块清晰）
-          let bestBucket = null;
-          for (const key in buckets) {
-            const bucket = buckets[key];
-            if (!bestBucket || bucket.count > bestBucket.count) {
-              bestBucket = bucket;
-            }
-          }
-          
-          if (!bestBucket) {
-            row[x] = null;
-            continue;
-          }
-          
-          const count = bestBucket.count || 1;
-          rAvg = Math.max(0, Math.min(255, Math.round(bestBucket.r / count)));
-          gAvg = Math.max(0, Math.min(255, Math.round(bestBucket.g / count)));
-          bAvg = Math.max(0, Math.min(255, Math.round(bestBucket.b / count)));
-        }
-        
-        row[x] = '#' + ((1 << 24) + (rAvg << 16) + (gAvg << 8) + bAvg).toString(16).slice(1).toUpperCase();
-      }
-      pixelData.push(row);
-    }
-    
-    console.log('像素化完成，尺寸:', pixelData.length, 'x', pixelData[0]?.length);
-    
-    // 应用饱和度和对比度调整
-    
-    return pixelData;
-  },
 
   // src: smart-pixel-generator.vue:2763-2839
   applyRegionMergingPipeline(settings = ctx.getEffectiveStructureSettings()) {
@@ -1833,11 +1442,6 @@ export const chainMethods = {
     // 区域合并
     if (regionMergeLevel > 0) {
       ctx.applyRegionMergingRgb(rgbData, regionMergeLevel);
-
-      // 高挡位时应用测试页中使用的轻量颜色归一化，以对齐竞品风格
-      if (regionMergeLevel >= 10) {
-        ctx.applyTestColorQuantizationRgb(rgbData, regionMergeLevel);
-      }
     }
 
     let iterations = settings.smoothIterations || 0;
@@ -2158,34 +1762,6 @@ export const chainMethods = {
     }
   },
 
-  // src: smart-pixel-generator.vue:3130-3156
-  applyTestColorQuantizationRgb(pixelData, level) {
-    const height = pixelData.length;
-    const width = pixelData[0] ? pixelData[0].length : 0;
-    if (height === 0 || width === 0) return;
-
-    const clampedLevel = Math.max(0, Math.min(20, level));
-    if (clampedLevel < 10) return;
-
-    const t = (clampedLevel - 10) / 10;
-    const rawStep = 6 + (10 - 6) * t;
-    const step = Math.max(1, Math.round(rawStep));
-
-    for (let y = 0; y < height; y++) {
-      const row = pixelData[y];
-      for (let x = 0; x < width; x++) {
-        const p = row[x];
-        if (!p) continue;
-        let r = Math.round(p.r / step) * step;
-        let g = Math.round(p.g / step) * step;
-        let b = Math.round(p.b / step) * step;
-        if (r < 0) r = 0; if (r > 255) r = 255;
-        if (g < 0) g = 0; if (g > 255) g = 255;
-        if (b < 0) b = 0; if (b > 255) b = 255;
-        row[x] = { r, g, b };
-      }
-    }
-  },
 
   // src: smart-pixel-generator.vue:3159-3199
   adjustColorProperties(pixels, options = null) {
@@ -2204,8 +1780,8 @@ export const chainMethods = {
         const rgb = ctx.hexToRgb(pixels[y][x]);
         const hsl = ctx.rgbToHsl(rgb);
         
-        // 肤色保护：检测是否为肤色像素（使用缓存）
-        const isSkin = protectSkinTone && ctx.isSkinTonePixelCached(pixels[y][x], rgb);
+        // 肤色保护：检测是否为肤色像素（唯一调用方固定传 protectSkinTone=false，故此分支当前不生效）
+        const isSkin = protectSkinTone && ctx.isSkinTonePixel(rgb);
         
         if (isSkin) {
           // 肤色像素：使用更温和的调整
@@ -2230,18 +1806,6 @@ export const chainMethods = {
     }
   },
 
-  // src: smart-pixel-generator.vue:3202-3212
-  isSkinTonePixelCached(hexColor, rgb) {
-    // 检查缓存
-    if (ctx.skinToneCache.has(hexColor)) {
-      return ctx.skinToneCache.get(hexColor);
-    }
-    
-    // 计算并缓存
-    const result = ctx.isSkinTonePixel(rgb);
-    ctx.skinToneCache.set(hexColor, result);
-    return result;
-  },
 
   // src: smart-pixel-generator.vue:3216-3239
   isSkinTonePixel(rgb) {
@@ -2466,16 +2030,8 @@ export const chainMethods = {
       ctx.recordPerformanceStage('基础匹配', baseMatchTime);
       console.log('耗时-基础匹配:', baseMatchTime, 'ms');
       
-      // 4. 应用抖动算法
-      if (ctx.autoConfig.dithering !== 'none') {
-        ctx.loadingText = '正在应用抖动...';
-        stageStart = Date.now();
-        result = await ctx.applyDithering(sourcePixels, result, paletteToUse);
-        if (activeToken && activeToken !== ctx.activeGenerateToken) return false;
-        ctx.recordPerformanceStage('抖动处理', Date.now() - stageStart);
-      }
       
-      // 5. 块面统一
+      // 4. 块面统一
       if (ctx.activeBlockUnityLevel > 0) {
         ctx.loadingText = '正在统一块面...';
         stageStart = Date.now();
@@ -2486,7 +2042,7 @@ export const chainMethods = {
         console.log('耗时-块面统一:', blockUnityTime, 'ms');
       }
 
-      // 6. 应用柔和模式
+      // 5. 应用柔和模式
       if (ctx.activeSmoothNoiseLevel > 0) {
         ctx.loadingText = '正在柔和处理...';
         stageStart = Date.now();
@@ -2497,7 +2053,7 @@ export const chainMethods = {
         console.log('耗时-柔和处理:', smoothTime, 'ms');
       }
 
-      // 7. 清理调色板杂色（合并极少使用的小色块到周围主色）
+      // 6. 清理调色板杂色（合并极少使用的小色块到周围主色）
       stageStart = Date.now();
       result = ctx.cleanupPaletteNoise(result);
       const cleanupTime = Date.now() - stageStart;
@@ -2837,157 +2393,10 @@ export const chainMethods = {
     return bestGlobalHex;
   },
 
-  // src: smart-pixel-generator.vue:3804-3843
-  calculateGradients(pixels) {
-    const rows = pixels.length, cols = pixels[0].length;
-    const gradients = [];
-    
-    for (let y = 0; y < rows; y++) {
-      const row = [];
-      for (let x = 0; x < cols; x++) {
-        if (!pixels[y][x]) {
-          row.push(0);
-          continue;
-        }
-        
-        // Sobel 算子计算梯度
-        let gx = 0, gy = 0;
-        
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const ny = y + dy, nx = x + dx;
-            if (ny < 0 || ny >= rows || nx < 0 || nx >= cols || !pixels[ny][nx]) continue;
-            
-            const rgb = ctx.hexToRgb(pixels[ny][nx]);
-            const intensity = (rgb.r + rgb.g + rgb.b) / 3;
-            
-            // Sobel 核
-            const gxKernel = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]];
-            const gyKernel = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]];
-            
-            gx += intensity * gxKernel[dy + 1][dx + 1];
-            gy += intensity * gyKernel[dy + 1][dx + 1];
-          }
-        }
-        
-        const gradient = Math.sqrt(gx * gx + gy * gy);
-        row.push(gradient);
-      }
-      gradients.push(row);
-    }
-    
-    return gradients;
-  },
 
-  // src: smart-pixel-generator.vue:3846-3862
-  async applyDithering(original, mapped, palette) {
-    // 方案D：检测色卡颜色数量，如果太少就跳过抖动
-    if (palette.length < 10) {
-      console.log('色卡颜色太少（', palette.length, '种），跳过抖动以避免噪点');
-      return mapped;
-    }
-    
-    // 方案A：计算梯度，只在渐变区域应用抖动
-    const gradients = ctx.calculateGradients(original);
-    
-    if (ctx.autoConfig.dithering === 'floyd-steinberg') {
-      return ctx.applyFloydSteinbergWithGradient(original, mapped, palette, gradients);
-    } else if (ctx.autoConfig.dithering === 'atkinson') {
-      return ctx.applyAtkinsonWithGradient(original, mapped, palette, gradients);
-    }
-    return mapped;
-  },
 
-  // src: smart-pixel-generator.vue:3865-3901
-  async applyFloydSteinbergWithGradient(original, mapped, palette, gradients) {
-    const rows = original.length, cols = original[0].length;
-    const work = JSON.parse(JSON.stringify(original));
-    const result = JSON.parse(JSON.stringify(mapped));
-    
-    const gradientThreshold = 20; // 梯度阈值，大于此值才应用抖动（提高到 20，更保守）
-    let ditherApplied = 0, ditherSkipped = 0;
-    
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const old = work[y][x];
-        if (!old) continue;
-        
-        const gradient = gradients[y][x];
-        const newC = ctx.findClosestColor(old, palette);
-        result[y][x] = newC;
-        
-        // 只在梯度大的区域（渐变区域）应用抖动
-        if (gradient > gradientThreshold) {
-          const oRgb = ctx.hexToRgb(old), nRgb = ctx.hexToRgb(newC);
-          const eR = oRgb.r - nRgb.r, eG = oRgb.g - nRgb.g, eB = oRgb.b - nRgb.b;
-          if (x+1 < cols) ctx.addError(work, y, x+1, eR, eG, eB, 7/16);
-          if (y+1 < rows) {
-            if (x > 0) ctx.addError(work, y+1, x-1, eR, eG, eB, 3/16);
-            ctx.addError(work, y+1, x, eR, eG, eB, 5/16);
-            if (x+1 < cols) ctx.addError(work, y+1, x+1, eR, eG, eB, 1/16);
-          }
-          ditherApplied++;
-        } else {
-          ditherSkipped++;
-        }
-      }
-    }
-    
-    console.log('抖动统计：应用=', ditherApplied, '跳过=', ditherSkipped);
-    return result;
-  },
 
-  // src: smart-pixel-generator.vue:3904-3942
-  async applyAtkinsonWithGradient(original, mapped, palette, gradients) {
-    const rows = original.length, cols = original[0].length;
-    const work = JSON.parse(JSON.stringify(original));
-    const result = JSON.parse(JSON.stringify(mapped));
-    
-    const gradientThreshold = 20; // 与 Floyd-Steinberg 保持一致
-    let ditherApplied = 0, ditherSkipped = 0;
-    
-    for (let y = 0; y < rows; y++) {
-      for (let x = 0; x < cols; x++) {
-        const old = work[y][x];
-        if (!old) continue;
-        
-        const gradient = gradients[y][x];
-        const newC = ctx.findClosestColor(old, palette);
-        result[y][x] = newC;
-        
-        // 只在梯度大的区域应用抖动
-        if (gradient > gradientThreshold) {
-          const oRgb = ctx.hexToRgb(old), nRgb = ctx.hexToRgb(newC);
-          const eR = oRgb.r - nRgb.r, eG = oRgb.g - nRgb.g, eB = oRgb.b - nRgb.b;
-          if (x+1 < cols) ctx.addError(work, y, x+1, eR, eG, eB, 1/8);
-          if (x+2 < cols) ctx.addError(work, y, x+2, eR, eG, eB, 1/8);
-          if (y+1 < rows) {
-            if (x > 0) ctx.addError(work, y+1, x-1, eR, eG, eB, 1/8);
-            ctx.addError(work, y+1, x, eR, eG, eB, 1/8);
-            if (x+1 < cols) ctx.addError(work, y+1, x+1, eR, eG, eB, 1/8);
-          }
-          if (y+2 < rows) ctx.addError(work, y+2, x, eR, eG, eB, 1/8);
-          ditherApplied++;
-        } else {
-          ditherSkipped++;
-        }
-      }
-    }
-    
-    console.log('Atkinson 抖动统计：应用=', ditherApplied, '跳过=', ditherSkipped);
-    return result;
-  },
 
-  // src: smart-pixel-generator.vue:3945-3953
-  addError(pixels, y, x, eR, eG, eB, factor) {
-    const c = pixels[y][x];
-    if (!c) return;
-    const rgb = ctx.hexToRgb(c);
-    const r = Math.max(0, Math.min(255, Math.round(rgb.r + eR * factor)));
-    const g = Math.max(0, Math.min(255, Math.round(rgb.g + eG * factor)));
-    const b = Math.max(0, Math.min(255, Math.round(rgb.b + eB * factor)));
-    pixels[y][x] = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
-  },
 
   // src: smart-pixel-generator.vue:3955-3963
   getBlockUnityParams(level) {
@@ -3249,152 +2658,8 @@ export const chainMethods = {
     return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
   },
 
-  // src: smart-pixel-generator.vue:4213-4243
-  drawResult(target = ctx.step === 1 ? 'preview' : 'matched') {
-    const canvasId = target === 'preview' ? 'previewCanvas' : 'matchedCanvas';
-    console.log('开始绘制结果到 canvas');
-    console.log('目标canvas:', canvasId);
-    console.log('canvasSize:', ctx.canvasSize);
-    console.log('pixelSize:', ctx.pixelSize);
-    console.log('resultPixelData:', ctx.resultPixelData ? `${ctx.resultPixelData.length}x${ctx.resultPixelData[0]?.length}` : 'null');
-    
-    if (!ctx.resultPixelData || ctx.resultPixelData.length === 0) {
-      console.error('resultPixelData 为空，无法绘制');
-      return;
-    }
-    
-    // 参考 palette-selector.vue，先检查 canvas 是否存在
-    const query = uni.createSelectorQuery().in(this);
-    query.select(`#${canvasId}`).boundingClientRect(data => {
-      console.log('Canvas 节点信息:', data);
-      
-      if (!data) {
-        console.error('Canvas 节点不存在！');
-        // 延迟重试
-        setTimeout(() => {
-          ctx.drawResult(target);
-        }, 300);
-        return;
-      }
-      
-      // Canvas 存在，开始绘制
-      ctx.doDrawResult(canvasId);
-    }).exec();
-  },
 
-  // src: smart-pixel-generator.vue:4511-4588
-  applyPresetConfig(presetType) {
-    const imgF = ctx.imageFeatures || {};
-    
-    // 其他预设使用固定配置
-    switch (presetType) {
-      case 'portrait-high':
-        ctx.autoConfig.pixelizeMode = 'smooth';
-        ctx.autoConfig.pixelMode = 'smooth';
-        ctx.autoConfig.smoothMode = 'light';
-        ctx.saturationLevel = 0.9;
-        ctx.contrastLevel = 1.02;
-        ctx.enableSkinToneProtection = true;
-        break;
-        
-      case 'portrait-medium':
-        ctx.autoConfig.pixelizeMode = 'smooth';
-        ctx.autoConfig.pixelMode = 'default';
-        ctx.autoConfig.smoothMode = 'light';
-        ctx.saturationLevel = 1.0;
-        ctx.contrastLevel = 1.05;
-        ctx.enableSkinToneProtection = true;
-        break;
-        
-      case 'illustration-character':
-        ctx.autoConfig.pixelizeMode = 'sharp';
-        ctx.autoConfig.pixelMode = 'preserve-edge';
-        ctx.autoConfig.smoothMode = 'light';
-        ctx.saturationLevel = 1.15;
-        ctx.contrastLevel = 1.1;
-        ctx.enableSkinToneProtection = false;
-        break;
-        
-      case 'icon':
-        ctx.autoConfig.pixelizeMode = 'sharp';
-        ctx.autoConfig.pixelMode = 'preserve-edge';
-        ctx.autoConfig.smoothMode = 'none';
-        ctx.saturationLevel = 1.0;
-        ctx.contrastLevel = 1.0;
-        ctx.enableSkinToneProtection = false;
-        break;
-        
-      case 'illustration':
-        ctx.autoConfig.pixelizeMode = 'sharp';
-        ctx.autoConfig.pixelMode = 'preserve-edge';
-        ctx.autoConfig.smoothMode = imgF.edgeComplexity > 0.25 ? 'light' : 'medium';
-        ctx.saturationLevel = 1.2;
-        ctx.contrastLevel = 1.1;
-        ctx.enableSkinToneProtection = false;
-        break;
-        
-      case 'photo':
-        ctx.autoConfig.pixelizeMode = 'smooth';
-        ctx.autoConfig.pixelMode = 'default';
-        ctx.autoConfig.smoothMode = 'light';
-        ctx.saturationLevel = 1.1;
-        ctx.contrastLevel = 1.08;
-        ctx.enableSkinToneProtection = false;
-        break;
-        
-      default:
-        ctx.autoConfig.algorithm = 'lab';
-        ctx.autoConfig.dithering = 'none';
-        ctx.autoConfig.pixelizeMode = 'smart';
-        ctx.autoConfig.pixelMode = 'default';
-        ctx.autoConfig.smoothMode = 'light';
-        ctx.autoConfig.paletteStrategy = 'nearest';
-        ctx.autoConfig.familyPriority = 'medium';
-        ctx.saturationLevel = 1.0;
-        ctx.contrastLevel = 1.0;
-        ctx.enableSkinToneProtection = false;
-        ctx.paletteMergeLevel = 0;
-        break;
-    }
-    
-    // 更新描述
-    ctx.updateDescription();
-    console.log('已应用预设配置:', presetType);
-  },
 
-  // src: smart-pixel-generator.vue:4685-4716
-  async regenerateFromPixelization() {
-    ctx.loading = true;
-    ctx.loadingText = '正在处理...';
-    const token = ++ctx.activeGenerateToken;
-    ctx.startPerformanceTrace('regenerate');
-    
-    try {
-      await ctx.processImage(token);
-      if (token !== ctx.activeGenerateToken) return;
-      
-      const matched = await ctx.matchColors(token);
-      if (!matched || token !== ctx.activeGenerateToken) return;
-      
-      ctx.updateDescription();
-      
-      ctx.drawResult(ctx.step === 1 ? 'preview' : 'matched');
-      ctx.finishPerformanceTrace();
-    } catch (e) {
-      console.error('重新生成失败:', e);
-      if (token === ctx.activeGenerateToken) {
-        uni.showToast({
-          title: `处理失败: ${e.message || '未知错误'}`,
-          icon: 'none',
-          duration: 2000
-        });
-      }
-    } finally {
-      if (token === ctx.activeGenerateToken) {
-        ctx.loading = false;
-      }
-    }
-  },
 };
 
 /**

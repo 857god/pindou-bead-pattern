@@ -25,15 +25,6 @@
               @change="onMatchMode"
             />
 
-            <div class="control-row dithering-row">
-              <label class="control-label" for="dithering-select">抖动：</label>
-              <select id="dithering-select" class="picker-display" :value="store.dithering" @change="onDithering">
-                <option v-for="item in DITHERING_OPTIONS" :key="item.value" :value="item.value">
-                  {{ item.label }}
-                </option>
-              </select>
-            </div>
-
             <p v-if="store.matchMode !== 'custom'" class="mode-hint-text">
               当前使用智能推荐；下方为高级匹配预览，点击「自定义」可启用
             </p>
@@ -106,7 +97,6 @@ import PixelCanvas from './PixelCanvas.vue';
 import SliderRow from './SliderRow.vue';
 import SwitchRow from './SwitchRow.vue';
 import {
-  DITHERING_OPTIONS,
   FAMILY_PRIORITIES,
   MATCH_ADJUSTMENTS,
   MATCH_MODES,
@@ -116,7 +106,6 @@ import {
   onMatchAdjustChange,
   onMatchAdjustInput,
   schedulePaint,
-  setDithering,
   setFamilyPriority,
   setMatchMode,
   setPaletteStrategy,
@@ -155,10 +144,6 @@ function onFamilyPriority(priority) {
   setFamilyPriority(priority);
 }
 
-function onDithering(event) {
-  setDithering(event.target.value);
-}
-
 function onMatchInput(key, value) {
   onMatchAdjustInput(key, value);
 }
@@ -175,14 +160,6 @@ function onSkinToneProtection(enabled) {
 <style scoped>
 .step-match {
   display: contents;
-}
-
-.dithering-row {
-  margin-top: 10px;
-}
-
-.dithering-row .picker-display {
-  width: 100%;
 }
 
 /* 色卡匹配策略与「匹配模式」平级，位置照源页面放在高级面板之后 */
