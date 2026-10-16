@@ -5,6 +5,15 @@ on:
     branches: [main]
   pull_request:
 
+# 只需要读权限；公开仓库里也别依赖默认值
+permissions:
+  contents: read
+
+# 同一分支上连续 push 时，取消被顶掉的旧运行
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -14,9 +23,9 @@ jobs:
         # package.json 的 engines 与 vite 8 一致：^20.19.0 || >=22.12.0
         node-version: [20.x, 22.x]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
