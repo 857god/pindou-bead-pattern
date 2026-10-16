@@ -1,5 +1,7 @@
 # pindou-simple
 
+[English](README.en.md) | 中文
+
 把一张照片变成拼豆（Perler / Hama bead）图纸的**两步**网页工具：
 
 1. **像素化处理**（降采样）——选图片、选像素大小、选色卡，实时预览像素化效果
@@ -16,6 +18,9 @@
 ## 快速开始
 
 ```bash
+git clone https://github.com/YOUR_GITHUB_USERNAME/pindou-simple.git
+cd pindou-simple
+
 npm install
 npm run dev        # http://127.0.0.1:5310
 ```
@@ -25,7 +30,7 @@ npm run build      # 产出 dist/
 npm run preview    # 预览构建结果
 ```
 
-要求 Node ≥ 18。没有后端，所有计算都在浏览器里完成，图片不会上传到任何地方。
+要求 Node ≥ 20.19（或 ≥ 22.12，跟 Vite 8 的要求一致）。没有后端，所有计算都在浏览器里完成，图片不会上传到任何地方。
 
 ## 两步在做什么
 
@@ -181,6 +186,10 @@ match=52x52  colors=21  mean=6.62  median=6.02  max=19.19  isolated=8  matchElap
   但不要期待明显效果。真正有效的是**孤色清理**（去杂色）：它把孤立豆（四邻都不同色的格子）从
   约 1.4% 降到约 0.2%，代价是被强改颜色的格子色差会变大。
 - 结构层的空间平滑在不改动聚类/区域合并档位时基本是空转（实测只影响 4 格）。
+
+## 参与开发
+
+见 [CONTRIBUTING.md](CONTRIBUTING.md)。一句话：不要提交品牌色卡数据，改算法要给前后对比。
 
 ## 许可证
 

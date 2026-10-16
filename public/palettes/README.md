@@ -1,7 +1,11 @@
 # 色卡数据放这里（可选）
 
 开源仓库**不含任何品牌色卡数据**，只带合成色卡（`src/algorithm/palettes.mjs`）。
-想用真实品牌色卡（Mard 221、Artkal 等）有两种方式：
+想用真实品牌色卡有两种方式：
+
+> **注意**：前端目前只开放 **Mard 291** 一张品牌色卡。数据目录里放了别的系列也不会出现在选择
+> 列表里 —— 开放哪一张由 `src/algorithm/palette-source.mjs` 的 `PREFERRED_PALETTE_ID` 决定，
+> 改这一行即可。找不到它时界面退回 4 档内置合成色卡。
 
 ## 方式一：外部数据目录（推荐，`npm run dev` 时生效）
 
@@ -10,7 +14,7 @@
 ```
 色卡根目录/
 ├── manifest.json
-└── mard-221-alfonse-doudou/
+└── mard-291-github/
     └── colors.json        # [{ "code": "A1", "hex": "#FAF5CD", ... }]
 ```
 
@@ -30,12 +34,12 @@ PINDOU_COLOR_DATA_ROOT=/绝对/路径/到/色卡根目录 npm run dev
 
 ```json
 // index.json
-{ "palettes": [ { "id": "mard-221", "label": "Mard 221", "brand": "Mard", "paletteCode": "Mard-221", "colorCount": 221, "kind": "external" } ] }
+{ "palettes": [ { "id": "mard-291", "label": "Mard 291", "brand": "Mard", "paletteCode": "Mard-291", "colorCount": 291, "kind": "external" } ] }
 ```
 
 ```json
-// mard-221.json
-{ "id": "mard-221", "label": "Mard 221", "colors": [ { "code": "A1", "hex": "#FAF5CD" } ] }
+// mard-291.json
+{ "id": "mard-291", "label": "Mard 291", "colors": [ { "code": "A1", "hex": "#FAF5CD" } ] }
 ```
 
 `*.json` 已被 `.gitignore` 排除，不会被误提交。

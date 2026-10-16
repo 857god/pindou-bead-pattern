@@ -3,8 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "拼豆图纸生成器：上传图片 → 像素化降采样 → 色卡匹配，两步出图",
+  "description": "拼豆图纸生成器：上传图片 → 像素化降采样 → 色卡匹配，两步出图（Perler / Hama bead pattern generator）",
   "license": "MIT",
+  "author": "Chenxi Zhang",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_GITHUB_USERNAME/pindou-simple.git"
+  },
+  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/pindou-simple#readme",
+  "bugs": {
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/pindou-simple/issues"
+  },
   "keywords": [
     "拼豆",
     "perler",
@@ -32,6 +41,6 @@
     "vite": "^8.3.4"
   },
   "engines": {
-    "node": ">=18"
+    "node": "^20.19.0 || >=22.12.0"
   }
 }

@@ -1,0 +1,13 @@
+# 统一换行：仓库里一律存 LF。
+# 没有这个文件时，core.autocrlf=true 的 Windows 贡献者会把 CRLF 带进仓库。
+* text=auto
+
+# 二进制文件不做换行 / 编码转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary

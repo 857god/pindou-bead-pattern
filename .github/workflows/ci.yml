@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # package.json 的 engines 与 vite 8 一致：^20.19.0 || >=22.12.0
+        node-version: [20.x, 22.x]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 单元测试（无需色卡数据，缺数据时相关用例自动跳过）
+        run: npm test
+
+      - name: 构建
+        run: npm run build
+
+      - name: 端到端冒烟（没有品牌色卡数据时自动用内置合成色卡）
+        run: node scripts/smoke.mjs 96
