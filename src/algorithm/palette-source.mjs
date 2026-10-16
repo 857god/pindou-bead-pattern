@@ -7,11 +7,21 @@
  * id 约定：
  *   `synthetic:<17|40|152|300>`  → 仓库自带的合成色卡，永远可用
  *   `external:<目录名>`           → 外部品牌色卡，走 `/palettes/index.json` 与 `/palettes/<id>.json`
+ *
+ * **可选范围由本文件决定**：外部数据里有 Mard 291 时，页面就只提供它这一张
+ * （连内置合成色卡也不列出来，界面已经没得选，品牌下拉会自动隐藏）；
+ * 没有外部品牌数据时（clone 下来就是这样）退回四档合成色卡，保证开箱能跑。
  */
 
 import { PRESET_PALETTES } from './palettes.mjs';
 
 export const PALETTE_ENDPOINT = '/palettes';
+
+/** 页面只开放这一张品牌色卡（外部数据里目录 `mard-291-github` 的 id）。 */
+export const PREFERRED_PALETTE_ID = 'mard-291';
+
+/** 没有外部品牌数据时默认选中的内置合成色卡：色最全的那张，示例效果最好。 */
+const FALLBACK_PALETTE_ID = 'synthetic:152';
 
 const SYNTHETIC_LABELS = {
   17: '17 色 · 灰阶 + 纯色相环',
@@ -33,8 +43,10 @@ export function listSyntheticPalettes() {
 }
 
 /**
- * 全部可选色卡（合成 + 外部）。
- * 外部数据不可用时静默降级成只有合成色卡，不让界面报错。
+ * 全部可选色卡。
+ *
+ * 有 Mard 291 时只返回它一张；没有外部数据时返回四档内置合成色卡（默认那张排在最前）。
+ * 外部数据不可用是正常情况，不报错。
  */
 export async function listPalettes() {
   const synthetic = listSyntheticPalettes();
@@ -57,7 +69,14 @@ export async function listPalettes() {
     // 没有外部色卡数据是正常情况，不是错误
   }
 
-  return { external, synthetic, all: [...external, ...synthetic] };
+  // 有指定的品牌色卡：只留它，其他品牌和内置合成色卡都不再出现在列表里
+  const preferred = external.filter((item) => item.id === `external:${PREFERRED_PALETTE_ID}`);
+  if (preferred.length) return { external: preferred, synthetic: [], all: preferred };
+
+  // 没有外部品牌数据：四档合成色卡都能选，把默认那张排到最前（界面默认选中第一张）
+  const fallback = synthetic.find((item) => item.id === FALLBACK_PALETTE_ID);
+  const all = fallback ? [fallback, ...synthetic.filter((item) => item !== fallback)] : synthetic;
+  return { external: [], synthetic, all };
 }
 
 /**

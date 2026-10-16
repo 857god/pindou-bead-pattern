@@ -13,7 +13,9 @@ import { listPalettes, loadPalette, listSyntheticPalettes } from '../src/algorit
 
 const INDEX = {
   palettes: [
+    { id: 'artkal-c-197', label: 'Artkal C 197', brand: 'Artkal', paletteCode: 'Artkal-C-197', colorCount: 2, kind: 'external' },
     { id: 'mard-221', label: 'Mard 221', brand: 'Mard', paletteCode: 'Mard-221', colorCount: 2, kind: 'external' },
+    { id: 'mard-291', label: 'Mard 291', brand: 'Mard', paletteCode: 'Mard-291', colorCount: 3, kind: 'external' },
   ],
 };
 const MARD = {
@@ -66,16 +68,18 @@ test('内置合成色卡四档，id 都带 synthetic: 前缀', () => {
   assert.deepEqual(list.map((p) => p.id), ['synthetic:17', 'synthetic:40', 'synthetic:152', 'synthetic:300']);
 });
 
-test('列出全部色卡：外部在前、合成在后，id 前缀正确', async () => {
+test('外部数据里只有 Mard 291 会进入可选列表，其他品牌一律剔除', async () => {
   const fake = stubFetch({ '/palettes/index.json': INDEX });
   try {
     const { external, synthetic, all } = await listPalettes();
-    assert.equal(external.length, 1);
-    assert.equal(external[0].id, 'external:mard-221');
+    // 索引里有三个系列（Artkal / Mard 221 / Mard 291），只留 Mard 291
+    assert.deepEqual(external.map((p) => p.id), ['external:mard-291']);
     assert.equal(external[0].brand, 'Mard');
-    assert.equal(synthetic.length, 4);
-    assert.equal(all.length, 5);
-    assert.equal(all[0].id, 'external:mard-221');
+    assert.equal(external[0].paletteCode, 'Mard-291');
+    assert.equal(external[0].colorCount, 3);
+    // 有品牌色卡时不再列内置合成色卡：界面上不会出现第二个选项
+    assert.deepEqual(synthetic, []);
+    assert.deepEqual(all.map((p) => p.id), ['external:mard-291']);
   } finally {
     fake.restore();
   }
@@ -84,9 +88,15 @@ test('列出全部色卡：外部在前、合成在后，id 前缀正确', async
 test('没有外部色卡数据时降级成只有合成色卡，不抛异常', async () => {
   const fake = stubFetch({});
   try {
-    const { external, synthetic } = await listPalettes();
+    const { external, synthetic, all } = await listPalettes();
     assert.deepEqual(external, []);
     assert.equal(synthetic.length, 4);
+    // 默认选中第一张：152 色那张（示例效果最好）
+    assert.equal(all[0].id, 'synthetic:152');
+    assert.deepEqual(
+      all.map((p) => p.id).sort(),
+      ['synthetic:152', 'synthetic:17', 'synthetic:300', 'synthetic:40'],
+    );
   } finally {
     fake.restore();
   }

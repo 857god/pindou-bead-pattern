@@ -11,7 +11,7 @@
 | --- | --- |
 | ![像素化处理](docs/step1-structure.png) | ![色号匹配](docs/step2-match.png) |
 
-（截图用内置示例场景 + Mard 221 色卡、80 格；方板之外的非等比区域留白，不拉伸。）
+（截图用内置示例场景 + Mard 291 色卡、80 格；方板之外的非等比区域留白，不拉伸。）
 
 ## 快速开始
 
@@ -67,7 +67,11 @@ npm run preview    # 预览构建结果
 ## 色卡数据
 
 **本仓库不含任何品牌色卡数据**，只带 4 档内置合成色卡（17 / 40 / 152 / 300 色），
-所以 clone 下来就能直接跑。想用真实品牌色卡（Mard 221、Artkal、CoCo 等）见
+所以 clone 下来就能直接跑（此时默认选中色最全的 152 色那张）。
+
+这个页面只开放 **Mard 291** 一张品牌色卡：外部数据里能找到它就只提供它，
+其他品牌和内置合成色卡都不会再进入选择列表（只剩一个选项时界面写成一行文字，
+不会摆一个只有单项的下拉）。想换或想加品牌色卡见
 [`public/palettes/README.md`](public/palettes/README.md)：把符合
 [pindou-color-data](https://github.com/HansBug/pindou-color-data) 约定的目录放好，
 用 `PINDOU_COLOR_DATA_ROOT` 指过去即可，开发服务器会把它挂到 `/palettes/*` 下。

@@ -32,8 +32,6 @@
       </div>
     </main>
 
-    <footer class="pw-footer">像素化处理 → 色号匹配 · 开源版：所有控件直接可用</footer>
-
     <LoadingOverlay :visible="loading" :text="store.loadingText" />
 
     <pre v-if="store.autotestMode" id="autotest" class="autotest-out">{{

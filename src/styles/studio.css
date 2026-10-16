@@ -74,13 +74,6 @@
   display: block;
 }
 
-.pw-footer {
-  padding: 0 12px 20px;
-  text-align: center;
-  font-size: 11px;
-  color: var(--pw-muted);
-}
-
 /* ==================== 卡片 / 标题 ==================== */
 
 .pw-card {

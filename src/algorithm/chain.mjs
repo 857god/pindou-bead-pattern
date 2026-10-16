@@ -365,7 +365,6 @@ export function createInitialState(overrides = {}) {
     // 智能配置（自动推荐）
     autoConfig: {
       algorithm: 'lab',           // 'weighted' | 'lab'
-      dithering: 'none',          // 'floyd-steinberg' | 'atkinson' | 'none' - 默认关闭
       smoothMode: 'light',        // 'none' | 'light' | 'medium' - 默认轻度
       pixelMode: 'default',       // 'default' | 'preserve-edge' | 'smooth' - 边缘处理
       pixelizeMode: 'smart',      // 'smart' | 'smooth' | 'sharp' - 像素化算法
@@ -865,7 +864,6 @@ export const chainMethods = {
       ctx.autoConfig.paletteStrategy,
       ctx.autoConfig.familyPriority,
       ctx.autoConfig.algorithm,
-      ctx.autoConfig.dithering,
       ctx.activeSmoothNoiseLevel,
       ctx.activeBlockUnityLevel,
       ctx.activePaletteMergeLevel,
@@ -2291,8 +2289,7 @@ export const chainMethods = {
       ctx.matchMode === 'standard' &&
       (tier === 'large' || tier === 'xlarge') &&
       ctx.pipelineMode === 'new' &&
-      ctx.autoConfig.paletteStrategy === 'nearest' &&
-      ctx.autoConfig.dithering === 'none';
+      ctx.autoConfig.paletteStrategy === 'nearest';
   },
 
   // src: smart-pixel-generator.vue:3706-3713
